@@ -185,3 +185,10 @@ for key in sorted(output.keys(), reverse=True):
 ```
 
 My final answer was one choice: 73x multiplier with 4 inhabitants
+
+### After Round 2 Ranking
+- Overall: #351
+- Manual: #1160
+- Algorithmic: #306
+- Country (USA): #117
+- Shells: 180,893
