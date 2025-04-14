@@ -10,7 +10,54 @@ I want to start off by giving credit where credit is due. I heavily relied on th
 Another resource I used was this:
 - https://github.com/pe049395/IMC-Prosperity-2024
 
-Because I am a completely new to algo trading, I decided to reverse engineer what successful algo traders have done in the past. My code is an extension/modification of the code shared above. 
+Because I am a completely new to algo trading, I decided to reverse engineer what successful algo traders have done in the past. My code is an extension/modification of the code shared above.
+
+## Round results
+
+<table>
+    <thead>
+        <tr>
+            <th></th>
+            <th colspan="4" style="text-align: center">Profit / loss</th>
+            <th colspan="4" style="text-align: center">Leaderboard position</th>
+        </tr>
+        <tr>
+            <th></th>
+            <th>Overall</th>
+            <th>Manual</th>
+            <th>Algo</th>
+            <th>Round</th>
+            <th>Overall</th>
+            <th>Manual</th>
+            <th>Algo</th>
+            <th>Country</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>1</td>
+            <td>90,596</td>
+            <td>44,340</td>
+            <td>46,256</td>
+            <td>90,596</td>
+            <td>197</td>
+            <td>1409</td>
+            <td>210</td>
+            <td>59</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>180,893</td>
+            <td>26,015</td>
+            <td>64,282</td>
+            <td>90,297</td>
+            <td>351</td>
+            <td>1160</td>
+            <td>306</td>
+            <td>117</td>
+        </tr>
+    </tbody>
+</table>
 
 # Phases
 
@@ -98,13 +145,6 @@ print("Best path:", " -> ".join(max_result["path"]))
 
 My final answer was SeaShells --> Snowballs --> Silicon Nuggets --> Pizza --> Snowballs --> SeaShells
 
-### After Round 1 Ranking
-- Overall: #197
-- Manual: #1409
-- Algorithmic: #210
-- Country (USA): #59
-- Shells: 90,596
-
 ## Round 2
 
 <details>
@@ -185,10 +225,3 @@ for key in sorted(output.keys(), reverse=True):
 ```
 
 My final answer was one choice: 73x multiplier with 4 inhabitants
-
-### After Round 2 Ranking
-- Overall: #351
-- Manual: #1160
-- Algorithmic: #306
-- Country (USA): #117
-- Shells: 180,893
