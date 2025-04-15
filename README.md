@@ -51,9 +51,9 @@ Because I am a completely new to algo trading, I decided to reverse engineer wha
             <td>26,015</td>
             <td>64,282</td>
             <td>90,297</td>
-            <td>351</td>
+            <td>352</td>
             <td>1160</td>
-            <td>306</td>
+            <td>308</td>
             <td>117</td>
         </tr>
     </tbody>
