@@ -4,6 +4,7 @@ import math
 import numpy as np
 from typing import Any
 import json
+from statistics import NormalDist
 
 class Logger:
     def __init__(self) -> None:
@@ -129,7 +130,14 @@ class Status:
         "JAMS": 350,
         "DJEMBES":60,
         "PICNIC_BASKET1": 60,
-        "PICNIC_BASKET2": 100
+        "PICNIC_BASKET2": 100,
+        "VOLCANIC_ROCK": 400,
+        "VOLCANIC_ROCK_VOUCHER_9500": 200,
+        "VOLCANIC_ROCK_VOUCHER_9750": 200,
+        "VOLCANIC_ROCK_VOUCHER_10000": 200,
+        "VOLCANIC_ROCK_VOUCHER_10250": 200,
+        "VOLCANIC_ROCK_VOUCHER_10500": 200,
+
     }
 
     _state = None
@@ -672,6 +680,30 @@ class Status:
         return self._state.market_trades.get(self.product, [])
 
 INF = 1e9
+normalDist = NormalDist(0,1)
+
+def cal_tau(day, timestep, T=1):
+    return T - ((day - 1) * 20000 + timestep) * 2e-7
+
+def cal_call(S, tau, sigma=0.16, r=0, K=10000):
+    d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * tau) / (sigma * math.sqrt(tau))
+    delta = normalDist.cdf(d1)
+    d2 = d1 - sigma * np.sqrt(tau)
+    call_price = S * delta - K * math.exp(-r * tau) * normalDist.cdf(d2)
+    return call_price, delta
+
+def cal_imvol(market_price, S, tau, r=0, K=10000, tol=1e-6, max_iter=100):
+    sigma = 0.16
+    diff = cal_call(S, tau, sigma)[0] - market_price
+
+    iter_count = 0
+    while np.any(np.abs(diff) > tol) and iter_count < max_iter:
+        vega = (cal_call(S, tau, sigma+tol)[0] - cal_call(S, tau, sigma)[0]) / tol
+        sigma -= diff / vega
+        diff = cal_call(S, tau, sigma)[0] - market_price
+        iter_count += 1
+    
+    return sigma
 
 class Strategy:
 
@@ -838,6 +870,27 @@ class Strategy:
             orders.append(Order(basket.product, int(basket.worst_ask), int(basket.possible_buy_amt)))
 
         return orders
+    
+    @staticmethod
+    def vol_arb(option: Status, iv, historical_iv=0.16, threshold=0.00178):
+
+        vol_spread = iv - historical_iv
+
+        orders = []
+
+        if vol_spread > threshold:
+            sell_amount = option.possible_sell_amt
+            orders.append(Order(option.product, option.worst_bid, -sell_amount))
+            executed_amount = min(sell_amount, option.total_bidamt)
+            option.rt_position_update(option.rt_position - executed_amount)
+
+        elif vol_spread < -threshold:
+            buy_amount = option.possible_buy_amt
+            orders.append(Order(option.product, option.worst_ask, buy_amount))
+            executed_amount = min(buy_amount, option.total_askamt)
+            option.rt_position_update(option.rt_position + executed_amount)
+
+        return orders
 
 class Trade:
 
@@ -889,6 +942,25 @@ class Trade:
         orders.extend(Strategy.index_arb2(basket, croissants, jams, threshold=54, theta=30))
 
         return orders
+    
+    @staticmethod
+    def volcanic_rock(underlying: Status, option: list[Status], day: int, historical_iv, threshold) -> dict[str, list[Order]]:
+        result = {
+            option.product: [],
+            underlying.product: []
+        }
+
+        underlying_prc = underlying.hist_mid_prc(1)[0]
+        option_prc = option.hist_mid_prc(1)[0]
+
+        tau = cal_tau(day=day, timestep=underlying.timestep)
+        theo, delta = cal_call(underlying_prc, tau)
+        iv = cal_imvol(option_prc, underlying_prc, tau)
+        logger.print(f'{theo}, {delta}, {iv}')
+        
+        result[option.product].extend(Strategy.vol_arb(option, iv, historical_iv=historical_iv, threshold=threshold))
+
+        return result
 
 logger = Logger()
 
@@ -902,6 +974,12 @@ class Trader:
     state_croissants = Status('CROISSANTS')
     state_jams = Status('JAMS')
     state_djembes = Status('DJEMBES')
+    state_volcanic_rock = Status('VOLCANIC_ROCK')
+    state_volcanic_rock_voucher_9500 = Status('VOLCANIC_ROCK_VOUCHER_9500')
+    state_volcanic_rock_voucher_9750 = Status('VOLCANIC_ROCK_VOUCHER_9750')
+    state_volcanic_rock_voucher_10000 = Status('VOLCANIC_ROCK_VOUCHER_10000')
+    state_volcanic_rock_voucher_10250 = Status('VOLCANIC_ROCK_VOUCHER_10250')
+    state_volcanic_rock_voucher_10500 = Status('VOLCANIC_ROCK_VOUCHER_10500')
 
 
     def run(self, state: TradingState) -> tuple[dict[Symbol, list[Order]], int, str]:
@@ -915,12 +993,26 @@ class Trader:
         # result["SQUID_INK"] = Trade.squid_ink(self.state_squid_ink)
 
         # round 2
+        # result["RAINFOREST_RESIN"] = Trade.rainforest_resin(self.state_rainforest_resin)
+        # result["KELP"] = Trade.kelp(self.state_kelp)
+        # result["SQUID_INK"] = Trade.squid_ink(self.state_squid_ink)
+        # result["PICNIC_BASKET1"] = Trade.picnic_basket1(self.state_picnic_basket1, self.state_croissants, self.state_jams, self.state_djembes)
+        # result["PICNIC_BASKET2"] = Trade.picnic_basket2(self.state_picnic_basket2, self.state_croissants, self.state_jams)
+
+        # round 3
         result["RAINFOREST_RESIN"] = Trade.rainforest_resin(self.state_rainforest_resin)
         result["KELP"] = Trade.kelp(self.state_kelp)
         result["SQUID_INK"] = Trade.squid_ink(self.state_squid_ink)
-
         result["PICNIC_BASKET1"] = Trade.picnic_basket1(self.state_picnic_basket1, self.state_croissants, self.state_jams, self.state_djembes)
         result["PICNIC_BASKET2"] = Trade.picnic_basket2(self.state_picnic_basket2, self.state_croissants, self.state_jams)
+
+        # Example for product 'VOLCANIC_ROCK_VOUCHER_9500'
+        volcanic_rock_result_9500 = Trade.volcanic_rock(self.state_volcanic_rock, self.state_volcanic_rock_voucher_9500, day=3, historical_iv=0.075281, threshold=0.00075281)
+        result["VOLCANIC_ROCK_VOUCHER_9500"] = volcanic_rock_result_9500["VOLCANIC_ROCK_VOUCHER_9500"]
+
+        # # Example for product 'VOLCANIC_ROCK_VOUCHER_9750'
+        volcanic_rock_result_9750 = Trade.volcanic_rock(self.state_volcanic_rock, self.state_volcanic_rock_voucher_9750, day=3, historical_iv=0.118972, threshold=0.0118972)
+        result["VOLCANIC_ROCK_VOUCHER_9750"] = volcanic_rock_result_9750["VOLCANIC_ROCK_VOUCHER_9750"]
 
         traderData = "SAMPLE"
         conversions = 0
