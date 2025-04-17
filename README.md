@@ -56,6 +56,17 @@ Because I am a completely new to algo trading, I decided to reverse engineer wha
             <td>308</td>
             <td>117</td>
         </tr>
+        <tr>
+            <td>3</td>
+            <td>275,608</td>
+            <td>42,390</td>
+            <td>52,324</td>
+            <td>94,715</td>
+            <td>551</td>
+            <td>1097</td>
+            <td>517</td>
+            <td>151</td>
+        </tr>
     </tbody>
 </table>
 
