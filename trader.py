@@ -137,6 +137,7 @@ class Status:
         "VOLCANIC_ROCK_VOUCHER_10000": 200,
         "VOLCANIC_ROCK_VOUCHER_10250": 200,
         "VOLCANIC_ROCK_VOUCHER_10500": 200,
+        "MAGNIFICENT_MACARONS": 75,
 
     }
 
@@ -220,14 +221,7 @@ class Status:
                 cls._hist_order_depths[product][f'bidamt{cnt}'].append(np.nan)
                 cnt += 1
         cls._num_data += 1
-        
-        # cls._hist_observation['sunlight'].append(state.observations.conversionObservations['ORCHIDS'].sunlight)
-        # cls._hist_observation['humidity'].append(state.observations.conversionObservations['ORCHIDS'].humidity)
-        # cls._hist_observation['transportFees'].append(state.observations.conversionObservations['ORCHIDS'].transportFees)
-        # cls._hist_observation['exportTariff'].append(state.observations.conversionObservations['ORCHIDS'].exportTariff)
-        # cls._hist_observation['importTariff'].append(state.observations.conversionObservations['ORCHIDS'].importTariff)
-        # cls._hist_observation['bidPrice'].append(state.observations.conversionObservations['ORCHIDS'].bidPrice)
-        # cls._hist_observation['askPrice'].append(state.observations.conversionObservations['ORCHIDS'].askPrice)
+
 
     def hist_order_depth(self, type: str, depth: int, size) -> np.ndarray:
         """Return historical order depth.
@@ -640,16 +634,16 @@ class Status:
         return -sum(self._state.order_depths[self.product].sell_orders.values())
 
     @property
-    def orchid_south_bidprc(self) -> float:
+    def magnificent_macarons_south_bidprc(self) -> float:
         return self._state.observations.conversionObservations[self.product].bidPrice
     
     @property
-    def orchid_south_askprc(self) -> float:
+    def magnificent_macarons_south_askprc(self) -> float:
         return self._state.observations.conversionObservations[self.product].askPrice
     
     @property
-    def orchid_south_midprc(self) -> float:
-        return (self.orchid_south_bidprc + self.orchid_south_askprc) / 2
+    def magnificent_macarons_south_midprc(self) -> float:
+        return (self.magnificent_macarons_south_bidprc + self.magnificent_macarons_south_askprc) / 2
     
     @property
     def stoarageFees(self) -> float:
@@ -705,6 +699,21 @@ def cal_imvol(market_price, S, tau, r=0, K=10000, tol=1e-6, max_iter=100):
     
     return sigma
 
+class ExecutionProb:
+
+    @staticmethod
+    def magnificent_macarons(delta):
+        if delta < -1:
+            return 0.571
+        elif delta > -0.5:
+            return 0
+        elif delta == -1.0:
+            return 0.2685
+        elif delta == -0.75:
+            return 0.2107
+        elif delta == -0.5:
+            return 0.1699
+        
 class Strategy:
 
     @staticmethod
@@ -891,6 +900,106 @@ class Strategy:
             option.rt_position_update(option.rt_position + executed_amount)
 
         return orders
+    
+    @staticmethod
+    def exchange_arb(state: Status, fair_price, next_price_move=0):
+        cost = state.transportFees + state.importTariff
+
+        my_ask = state.maxamt_bidprc
+        ask_max_expected_profit = 0
+        optimal_my_ask = INF
+        while my_ask < fair_price:
+            delta = my_ask - fair_price
+            execution_prob = ExecutionProb.magnificent_macarons(delta)
+
+            if my_ask > state.best_bid:
+                trading_profit = my_ask - (state.magnificent_macarons_south_askprc + next_price_move)
+                expected_profit = execution_prob * (trading_profit - cost)
+             
+            else:
+                execution_prob_list = []
+                price_list = []
+                amount_list = []
+
+                for price, amount in state.bids:
+                    if price >= my_ask:
+                        execution_prob_list.append(1)
+                        price_list.append(price)
+                        amount_list.append(amount)
+
+                total_amount = np.sum(amount_list)
+                if total_amount < state.position_limit:
+                    execution_prob_list.append(ExecutionProb.magnificent_macarons(delta))
+                    price_list.append(my_ask)
+                    amount_list.append(state.position_limit - total_amount)
+
+                trading_profit_list = np.array(price_list) - (state.magnificent_macarons_south_askprc + next_price_move)
+                expected_profit = (np.array(execution_prob_list) * (np.array(trading_profit_list) - cost) * np.array(amount_list) / state.position_limit).sum()
+
+            if expected_profit > ask_max_expected_profit:
+                optimal_my_ask = my_ask
+                ask_max_expected_profit = expected_profit
+            
+            my_ask += 1
+
+
+        cost = state.transportFees + state.exportTariff + state.stoarageFees
+
+        my_bid = state.maxamt_askprc
+        bid_max_expected_profit = 0
+        optimal_my_bid = 1
+        while my_bid > fair_price:
+            delta = fair_price - my_bid
+            execution_prob = ExecutionProb.magnificent_macarons(delta)
+
+            if my_bid < state.best_ask:
+                trading_profit = (state.magnificent_macarons_south_bidprc + next_price_move) - my_bid
+                expected_profit = execution_prob * (trading_profit - cost)
+             
+            else:
+                execution_prob_list = []
+                price_list = []
+                amount_list = []
+
+                for price, amount in state.asks:
+                    if price <= my_bid:
+                        execution_prob_list.append(1)
+                        price_list.append(price)
+                        amount_list.append(abs(amount))
+
+                total_amount = np.sum(amount_list)
+                if total_amount < state.position_limit:
+                    execution_prob_list.append(ExecutionProb.magnificent_macarons(delta))
+                    price_list.append(my_bid)
+                    amount_list.append(state.position_limit - total_amount)
+
+                trading_profit_list = (state.magnificent_macarons_south_bidprc + next_price_move) - np.array(price_list)
+                expected_profit = (np.array(execution_prob_list) * (np.array(trading_profit_list) - cost) * np.array(amount_list) / state.position_limit).sum()
+
+            if expected_profit > bid_max_expected_profit:
+                optimal_my_bid = my_bid
+                bid_max_expected_profit = expected_profit
+            
+            my_bid -= 1
+            
+
+        orders = []
+        
+        if ask_max_expected_profit >= bid_max_expected_profit and ask_max_expected_profit > 0:
+            orders.append(Order(state.product, int(optimal_my_ask), -int(state.position_limit)))
+        elif bid_max_expected_profit > ask_max_expected_profit and bid_max_expected_profit > 0:
+            orders.append(Order(state.product, int(optimal_my_bid), int(state.position_limit)))
+        
+        return orders
+
+    @staticmethod
+    def convert(state: Status):
+        if state.position < 0:
+            return -state.position
+        elif state.position > 0:
+            return -state.position
+        else:
+            return 0
 
 class Trade:
 
@@ -961,6 +1070,20 @@ class Trade:
         result[option.product].extend(Strategy.vol_arb(option, iv, historical_iv=historical_iv, threshold=threshold))
 
         return result
+    
+    @staticmethod
+    def magnificent_macarons(state: Status) -> list[Order]:
+
+        current_price = state.magnificent_macarons_south_midprc
+            
+        orders = []
+        orders.extend(Strategy.exchange_arb(state=state, fair_price=current_price, next_price_move=0))
+
+        return orders
+    
+    @staticmethod
+    def convert(state: Status) -> int:
+        return Strategy.convert(state=state)
 
 logger = Logger()
 
@@ -980,6 +1103,7 @@ class Trader:
     state_volcanic_rock_voucher_10000 = Status('VOLCANIC_ROCK_VOUCHER_10000')
     state_volcanic_rock_voucher_10250 = Status('VOLCANIC_ROCK_VOUCHER_10250')
     state_volcanic_rock_voucher_10500 = Status('VOLCANIC_ROCK_VOUCHER_10500')
+    state_magnificent_macarons = Status('MAGNIFICENT_MACARONS')
 
 
     def run(self, state: TradingState) -> tuple[dict[Symbol, list[Order]], int, str]:
@@ -1000,6 +1124,21 @@ class Trader:
         # result["PICNIC_BASKET2"] = Trade.picnic_basket2(self.state_picnic_basket2, self.state_croissants, self.state_jams)
 
         # round 3
+        # result["RAINFOREST_RESIN"] = Trade.rainforest_resin(self.state_rainforest_resin)
+        # result["KELP"] = Trade.kelp(self.state_kelp)
+        # result["SQUID_INK"] = Trade.squid_ink(self.state_squid_ink)
+        # result["PICNIC_BASKET1"] = Trade.picnic_basket1(self.state_picnic_basket1, self.state_croissants, self.state_jams, self.state_djembes)
+        # result["PICNIC_BASKET2"] = Trade.picnic_basket2(self.state_picnic_basket2, self.state_croissants, self.state_jams)
+
+        # # Example for product 'VOLCANIC_ROCK_VOUCHER_9500'
+        # volcanic_rock_result_9500 = Trade.volcanic_rock(self.state_volcanic_rock, self.state_volcanic_rock_voucher_9500, day=3, historical_iv=0.075281, threshold=0.00075281)
+        # result["VOLCANIC_ROCK_VOUCHER_9500"] = volcanic_rock_result_9500["VOLCANIC_ROCK_VOUCHER_9500"]
+
+        # # # Example for product 'VOLCANIC_ROCK_VOUCHER_9750'
+        # volcanic_rock_result_9750 = Trade.volcanic_rock(self.state_volcanic_rock, self.state_volcanic_rock_voucher_9750, day=3, historical_iv=0.118972, threshold=0.0118972)
+        # result["VOLCANIC_ROCK_VOUCHER_9750"] = volcanic_rock_result_9750["VOLCANIC_ROCK_VOUCHER_9750"]
+
+        # round 4
         result["RAINFOREST_RESIN"] = Trade.rainforest_resin(self.state_rainforest_resin)
         result["KELP"] = Trade.kelp(self.state_kelp)
         result["SQUID_INK"] = Trade.squid_ink(self.state_squid_ink)
@@ -1012,7 +1151,9 @@ class Trader:
 
         # # Example for product 'VOLCANIC_ROCK_VOUCHER_9750'
         volcanic_rock_result_9750 = Trade.volcanic_rock(self.state_volcanic_rock, self.state_volcanic_rock_voucher_9750, day=3, historical_iv=0.118972, threshold=0.0118972)
-        result["VOLCANIC_ROCK_VOUCHER_9750"] = volcanic_rock_result_9750["VOLCANIC_ROCK_VOUCHER_9750"]
+        # result["VOLCANIC_ROCK_VOUCHER_9750"] = volcanic_rock_result_9750["VOLCANIC_ROCK_VOUCHER_9750"]
+        # result["MAGNIFICENT_MACARONS"] = Trade.magnificent_macarons(self.state_magnificent_macarons)
+        # conversions = Trade.convert(self.state_magnificent_macarons)
 
         traderData = "SAMPLE"
         conversions = 0
