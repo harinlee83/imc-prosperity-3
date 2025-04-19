@@ -1150,7 +1150,7 @@ class Trader:
         result["VOLCANIC_ROCK_VOUCHER_9500"] = volcanic_rock_result_9500["VOLCANIC_ROCK_VOUCHER_9500"]
 
         # # Example for product 'VOLCANIC_ROCK_VOUCHER_9750'
-        volcanic_rock_result_9750 = Trade.volcanic_rock(self.state_volcanic_rock, self.state_volcanic_rock_voucher_9750, day=3, historical_iv=0.118972, threshold=0.0118972)
+        # volcanic_rock_result_9750 = Trade.volcanic_rock(self.state_volcanic_rock, self.state_volcanic_rock_voucher_9750, day=3, historical_iv=0.118972, threshold=0.0118972)
         # result["VOLCANIC_ROCK_VOUCHER_9750"] = volcanic_rock_result_9750["VOLCANIC_ROCK_VOUCHER_9750"]
         # result["MAGNIFICENT_MACARONS"] = Trade.magnificent_macarons(self.state_magnificent_macarons)
         # conversions = Trade.convert(self.state_magnificent_macarons)
