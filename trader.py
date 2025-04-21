@@ -1138,12 +1138,12 @@ class Trader:
         # volcanic_rock_result_9750 = Trade.volcanic_rock(self.state_volcanic_rock, self.state_volcanic_rock_voucher_9750, day=3, historical_iv=0.118972, threshold=0.0118972)
         # result["VOLCANIC_ROCK_VOUCHER_9750"] = volcanic_rock_result_9750["VOLCANIC_ROCK_VOUCHER_9750"]
 
-        # round 4
+        # round 4 and 5
         result["RAINFOREST_RESIN"] = Trade.rainforest_resin(self.state_rainforest_resin)
         result["KELP"] = Trade.kelp(self.state_kelp)
         result["SQUID_INK"] = Trade.squid_ink(self.state_squid_ink)
         result["PICNIC_BASKET1"] = Trade.picnic_basket1(self.state_picnic_basket1, self.state_croissants, self.state_jams, self.state_djembes)
-        result["PICNIC_BASKET2"] = Trade.picnic_basket2(self.state_picnic_basket2, self.state_croissants, self.state_jams)
+        # result["PICNIC_BASKET2"] = Trade.picnic_basket2(self.state_picnic_basket2, self.state_croissants, self.state_jams)
 
         # Example for product 'VOLCANIC_ROCK_VOUCHER_9500'
         volcanic_rock_result_9500 = Trade.volcanic_rock(self.state_volcanic_rock, self.state_volcanic_rock_voucher_9500, day=3, historical_iv=0.075281, threshold=0.00075281)
