@@ -1,8 +1,8 @@
 # 2025 IMC Prosperity Challenge
 
-I've always had interest in financial markets, but this was my first time learning to algo trade. I saw an advertisement for IMC Prosperity 3 on LinkedIn, so I immediately seized the opportunity.
+I've always had interest in financial markets, but this was my first time learning to algo trade.
 
-I want to start off by giving credit where credit is due. I heavily relied on these resources for testing:
+Giving credit where credit is due. I heavily relied on these resources for testing:
 - https://github.com/jmerle/imc-prosperity-3-submitter
 - https://github.com/jmerle/imc-prosperity-3-visualizer
 - https://github.com/jmerle/imc-prosperity-3-backtester
@@ -13,6 +13,8 @@ Another resource I used was this:
 Because I am a completely new to algo trading, I decided to reverse engineer what successful algo traders have done in the past. My code is an extension/modification of the code shared above.
 
 ## Round results
+
+![Island Screenshot](./island_screenshot.png)
 
 <table>
     <thead>
@@ -78,8 +80,21 @@ Because I am a completely new to algo trading, I decided to reverse engineer wha
             <td>318</td>
             <td>109</td>
         </tr>
+        <tr>
+            <td>5</td>
+            <td>460,248</td>
+            <td>81,607</td>
+            <td>-2,803</td>
+            <td>78,803</td>
+            <td>372</td>
+            <td>515</td>
+            <td>390</td>
+            <td>103</td>
+        </tr>
     </tbody>
 </table>
+
+There were 12,620 competing in the tournament, so I finished in the top 3%.
 
 # Phases
 
